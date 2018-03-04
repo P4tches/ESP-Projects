@@ -1,0 +1,41 @@
+import network,time,machine,math
+detNet = 'Supernet'
+detRangePercent = 70
+sta_if = network.WLAN(network.STA_IF)
+sta_if.active(True)
+from machine import RTC
+rtc = RTC()
+
+p0 = machine.Pin(5) #create port D1
+pwm0 = machine.PWM(p0)
+pwm0.duty(0)
+
+avg=[0,0,0]
+rssi = 0
+
+while True:
+        nets = sta_if.scan()
+	f = open('data.txt','a')
+        for i in range(0,len(nets)):
+		rssi = 100
+		if nets[i][0].decode("utf-8") == detNet:
+			f.write(str(nets[i][0].decode("utf-8")) + " ")
+			##Convert
+			rssi = float((float(abs(nets[i][3]))*(100/detRangePercent)))
+			if rssi >= (100.0):
+				rssi = 100
+			break
+	## Everything else
+	## Pulse
+	value = ((((100.0-float(rssi))/100.0))*1023.0)
+	## Avg
+	avg[2] = float(avg[1])
+	avg[1] = float(avg[0])
+	avg[0] = float(value)
+	totalAvg = (avg[0]+avg[1]+avg[2])/3.0
+
+	f.write(str(rtc.datetime()) + "RSSI: " + str(rssi))
+
+	pwm0.duty(int(totalAvg))
+	f.write(' TotalAvg: ' + str(totalAvg) + " Array: " + str(avg) + '\n')
+	f.close()
